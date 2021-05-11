@@ -112,7 +112,7 @@ class rank extends responsetype {
      * @throws \coding_exception
      * @throws \dml_exception
      */
-    public function insert_response($responsedata) {
+    public function insert_response($responsedata, $anonymous=false) {
         global $DB;
 
         if (!$responsedata instanceof \mod_questionnaire\responsetype\response\response) {
@@ -127,7 +127,7 @@ class rank extends responsetype {
             foreach ($response->answers[$this->question->id] as $answer) {
                 // Record the choice selection.
                 $record = new \stdClass();
-                $record->response_id = $response->id;
+                $record->response_id = ($anonymous ?  0 : $response->id);
                 $record->question_id = $this->question->id;
                 $record->choice_id = $answer->choiceid;
                 $record->rankvalue = $answer->value;
@@ -143,6 +143,8 @@ class rank extends responsetype {
      * @return array
      *
      * TODO - This works differently than all other get_results methods. This needs to be refactored.
+     * @throws \dml_exception
+     * @throws \coding_exception
      */
     public function get_results($rids=false, $anonymous=false) {
         global $DB;
@@ -240,7 +242,7 @@ class rank extends responsetype {
      * @param array $rids
      * @return array | boolean
      */
-    public function get_feedback_scores(array $rids) {
+    public function get_feedback_scores(array $rids, bool $anonymous) {
         global $DB;
 
         $rsql = '';
@@ -248,7 +250,7 @@ class rank extends responsetype {
         if (!empty($rids)) {
             list($rsql, $rparams) = $DB->get_in_or_equal($rids);
             $params = array_merge($params, $rparams);
-            $rsql = ' AND response_id ' . $rsql;
+            $rsql = $anonymous ? '' : ' AND response_id ' . $rsql;
         }
         $params[] = 'y';
 

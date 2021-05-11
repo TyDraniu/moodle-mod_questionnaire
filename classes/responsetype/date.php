@@ -62,12 +62,13 @@ class date extends responsetype {
     }
 
     /**
-     * @param \mod_questionnaire\responsetype\response\response\ $responsedata
+     * @param \mod_questionnaire\responsetype\response\response\|\stdClass $responsedata
+     * @param bool $anonymous
      * @return bool|int
      * @throws \coding_exception
      * @throws \dml_exception
      */
-    public function insert_response($responsedata) {
+    public function insert_response($responsedata, $anonymous=false) {
         global $DB;
 
         if (!$responsedata instanceof \mod_questionnaire\responsetype\response\response) {
@@ -83,7 +84,7 @@ class date extends responsetype {
             }
             // Now use ISO date formatting.
             $record = new \stdClass();
-            $record->response_id = $response->id;
+            $record->response_id = ($anonymous ?  0 : $response->id);
             $record->question_id = $this->question->id;
             $record->response = $thisdate;
             return $DB->insert_record(self::response_table(), $record);

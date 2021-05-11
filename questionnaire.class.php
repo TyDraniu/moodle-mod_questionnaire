@@ -1374,11 +1374,12 @@ class questionnaire {
             // Open print friendly as popup window.
             $linkname = '&nbsp;'.get_string('printblank', 'questionnaire');
             $title = get_string('printblanktooltip', 'questionnaire');
-            $url = '/mod/questionnaire/print.php?qid='.$this->id.'&amp;rid=0&amp;'.'courseid='.$this->course->id.'&amp;sec=1';
+            // $url = '/mod/questionnaire/print.php?qid='.$this->id.'&amp;rid=0&amp;'.'courseid='.$this->course->id.'&amp;sec=1';
             $options = array('menubar' => true, 'location' => false, 'scrollbars' => true, 'resizable' => true,
                 'height' => 600, 'width' => 800, 'title' => $title);
             $name = 'popup';
-            $link = new moodle_url($url);
+            $link = new moodle_url('/mod/questionnaire/print.php',
+                ['qid' => $this->id, 'rid' => 0, 'courseid' => $this->course->id, 'sec' => 1]);
             $action = new popup_action('click', $link, $name, $options);
             $class = "floatprinticon";
             $this->page->add_to_page('printblank',
@@ -2265,7 +2266,7 @@ class questionnaire {
 
         $record = new stdClass();
         $record->submitted = time();
-
+        $anonymous = $this->respondenttype == 'anonymous';
         if (empty($responsedata->rid)) {
             // Create a uniqe id for this response.
             $record->questionnaireid = $this->id;
@@ -2280,7 +2281,7 @@ class questionnaire {
             // Log this saved response.
             // Needed for the event logging.
             $context = context_module::instance($this->cm->id);
-            $anonymous = $this->respondenttype == 'anonymous';
+
             $params = array(
                 'context' => $context,
                 'courseid' => $this->course->id,
@@ -2297,7 +2298,7 @@ class questionnaire {
         }
         if (!empty($this->questionsbysec[$responsedata->sec])) {
             foreach ($this->questionsbysec[$responsedata->sec] as $questionid) {
-                $this->questions[$questionid]->insert_response($responsedata);
+                $this->questions[$questionid]->insert_response($responsedata, $anonymous);
             }
         }
         return($responsedata->rid);
@@ -2693,9 +2694,10 @@ class questionnaire {
                 $SESSION->questionnaire->noresponses = true;
                 return;
             }
+
             $numresps = count($rows);
             $this->page->add_to_page('respondentinfo',
-                ' '.get_string('responses', 'questionnaire').': <strong>'.$numresps.'</strong>');
+                '<br>'.get_string('responses', 'questionnaire').': <strong>'.$numresps.'</strong>');
             if (empty($rows)) {
                 $errmsg = get_string('erroropening', 'questionnaire') .' '. get_string('noresponsedata', 'questionnaire');
                 return($errmsg);
@@ -2806,7 +2808,8 @@ class questionnaire {
      *
      * @return array
      */
-    protected function choice_types() {
+    protected function choice_types(): array
+    {
         return [QUESRADIO, QUESDROP, QUESCHECK, QUESRATE];
     }
 
@@ -2879,25 +2882,24 @@ class questionnaire {
 
     /**
      * Process individual row for csv output
-     * @param array $outputrow output row
+     * @param array $row
      * @param stdClass $resprow resultset row
      * @param int $currentgroupid
      * @param array $questionsbyposition
      * @param int $nbinfocols
      * @param int $numrespcols
+     * @param int $showincompletes
      * @return array
-     * @throws Exception
      * @throws coding_exception
      * @throws dml_exception
-     * @throws dml_missing_record_exception
-     * @throws dml_multiple_records_exception
      */
     protected function process_csv_row(array &$row,
                                        stdClass $resprow,
-                                       $currentgroupid,
+                                       int $currentgroupid,
                                        array &$questionsbyposition,
-                                       $nbinfocols,
-                                       $numrespcols, $showincompletes = 0) {
+                                       int $nbinfocols,
+                                       int $numrespcols,
+                                       $showincompletes = 0) {
         global $DB;
 
         static $config = null;
@@ -2969,6 +2971,7 @@ class questionnaire {
             $fullname = get_string('anonymous', 'questionnaire') . $anonumap[$user->id];
             $username = '';
             $uid = '';
+            $user->department = '';
         } else {
             $uid = $user->id;
             $fullname = fullname($user);
@@ -3029,6 +3032,11 @@ class questionnaire {
     /* {{{ proto array survey_generate_csv(int surveyid)
     Exports the results of a survey to an array.
     */
+    /**
+     * @throws coding_exception
+     * @throws dml_exception
+     * @throws moodle_exception
+     */
     public function generate_csv($rid='', $userid='', $choicecodes=1, $choicetext=0, $currentgroupid, $showincompletes=0,
                                  $rankaverages=0) {
         global $DB;
@@ -3351,6 +3359,7 @@ class questionnaire {
                     }
 
                     $content = $choicesbyqid[$qid][$responserow->choice_id]->content;
+                    $content = explode('::', $content)[0];
                     if (\mod_questionnaire\question\choice\choice::content_is_other_choice($content)) {
                         // If this has an "other" text, use it.
                         $responsetxt = \mod_questionnaire\question\choice\choice::content_other_choice_display($content);
@@ -3403,7 +3412,7 @@ class questionnaire {
             }
             $pos = 0;
             for ($i = $nbinfocols; $i < $numrespcols; $i++) {
-                $summaryrow[$i] = isset($averagerow[$i]) ? $averagerow[$i] : '';
+                $summaryrow[$i] = $averagerow[$i] ?? '';
             }
             $output[] = $summaryrow;
         }
@@ -3546,7 +3555,7 @@ class questionnaire {
                 $qmax[$qid] = $question->get_feedback_maxscore();
                 $maxtotalscore += $qmax[$qid];
                 // Get all the feedback scores for this question.
-                $responsescores[$qid] = $question->get_feedback_scores($rids);
+                $responsescores[$qid] = $question->get_feedback_scores($rids, $this->respondenttype == 'anonymous');
             }
         }
         // Just in case no values have been entered in the various questions possible answers field.

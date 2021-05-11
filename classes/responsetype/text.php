@@ -63,12 +63,12 @@ class text extends responsetype {
     }
 
     /**
-     * @param \mod_questionnaire\responsetype\response\response|\stdClass $responsedata
+     * @param object $responsedata
      * @return bool|int
      * @throws \coding_exception
      * @throws \dml_exception
      */
-    public function insert_response($responsedata) {
+    public function insert_response($responsedata, $anonymous=false) {
         global $DB;
 
         if (!$responsedata instanceof \mod_questionnaire\responsetype\response\response) {
@@ -79,7 +79,7 @@ class text extends responsetype {
 
         if (!empty($response) && isset($response->answers[$this->question->id][0])) {
             $record = new \stdClass();
-            $record->response_id = $response->id;
+            $record->response_id = ($anonymous ?  0 : $response->id);
             $record->question_id = $this->question->id;
             $record->response = $response->answers[$this->question->id][0]->value;
             return $DB->insert_record(static::response_table(), $record);
@@ -98,21 +98,18 @@ class text extends responsetype {
     public function get_results($rids=false, $anonymous=false) {
         global $DB;
 
-        $rsql = '';
-        if (!empty($rids)) {
-            list($rsql, $params) = $DB->get_in_or_equal($rids);
-            $rsql = ' AND response_id ' . $rsql;
-        }
-
         if ($anonymous) {
-            $sql = 'SELECT t.id, t.response, r.submitted AS submitted, ' .
-                    'r.questionnaireid, r.id AS rid ' .
-                    'FROM {'.static::response_table().'} t, ' .
-                    '{questionnaire_response} r ' .
-                    'WHERE question_id=' . $this->question->id . $rsql .
-                    ' AND t.response_id = r.id ' .
-                    'ORDER BY r.submitted DESC';
+            $sql = 'SELECT t.id, t.response ' .
+                    'FROM {'.static::response_table().'} t ' .
+                    'WHERE t.question_id=' . $this->question->id .
+                    'AND t.response_id = 0 ';
         } else {
+            $rsql = '';
+            if (!empty($rids)) {
+                list($rsql, $params) = $DB->get_in_or_equal($rids);
+                $rsql = ' AND response_id ' . $rsql;
+            }
+
             $sql = 'SELECT t.id, t.response, r.submitted AS submitted, r.userid, u.username AS username, ' .
                     'u.id as usrid, ' .
                     'r.questionnaireid, r.id AS rid ' .

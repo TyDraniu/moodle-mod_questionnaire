@@ -392,12 +392,13 @@ abstract class question {
     /**
      * Insert response data method.
      * @param object $responsedata All of the responsedata.
+     * @param bool $anonymous
      * @return bool
      */
-    public function insert_response($responsedata) {
+    public function insert_response($responsedata, $anonymous=false) {
         if (isset($this->responsetype) && is_object($this->responsetype) &&
             is_subclass_of($this->responsetype, '\\mod_questionnaire\\responsetype\\responsetype')) {
-            return $this->responsetype->insert_response($responsedata);
+            return $this->responsetype->insert_response($responsedata, $anonymous);
         } else {
             return false;
         }
@@ -494,12 +495,13 @@ abstract class question {
     /**
      * Provide the feedback scores for all requested response id's. This should be provided only by questions that provide feedback.
      * @param array $rids
+     * @param bool $anonymous
      * @return array | boolean
      */
-    public function get_feedback_scores(array $rids) {
+    public function get_feedback_scores(array $rids, bool $anonymous=false) {
         if ($this->valid_feedback() && isset($this->responsetype) && is_object($this->responsetype) &&
             is_subclass_of($this->responsetype, '\\mod_questionnaire\\responsetype\\responsetype')) {
-            return $this->responsetype->get_feedback_scores($rids);
+            return $this->responsetype->get_feedback_scores($rids, $anonymous);
         } else {
             return false;
         }

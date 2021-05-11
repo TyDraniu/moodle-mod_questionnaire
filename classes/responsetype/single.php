@@ -60,7 +60,7 @@ class single extends responsetype {
             if ($question->choices[$responsedata->{'q'.$question->id}]->is_other_choice()) {
                 $cname = 'q' . $question->id .
                     \mod_questionnaire\question\choice\choice::id_other_choice_name($responsedata->{'q'.$question->id});
-                $record->value = isset($responsedata->{$cname}) ? $responsedata->{$cname} : '';
+                $record->value = $responsedata->{$cname} ?? '';
             }
             $answers[$responsedata->{'q'.$question->id}] = answer\answer::create_from_data($record);
         }
@@ -85,8 +85,7 @@ class single extends responsetype {
             // If this choice is an "other" choice, look for the added input.
             if ($question->choices[$record->choiceid]->is_other_choice()) {
                 $cname = \mod_questionnaire\question\choice\choice::id_other_choice_name($record->choiceid);
-                $record->value =
-                    isset($responsedata->{$qname}[$cname]) ? $responsedata->{$qname}[$cname] : '';
+                $record->value = $responsedata->{$qname}[$cname] ?? '';
             } else {
                 $record->value = '';
             }
@@ -96,12 +95,13 @@ class single extends responsetype {
     }
 
     /**
-     * @param \mod_questionnaire\responsetype\response\response|\stdClass $responsedata
+     * @param object $responsedata
+     * @param bool $anonymous
      * @return bool|int
      * @throws \coding_exception
      * @throws \dml_exception
      */
-    public function insert_response($responsedata) {
+    public function insert_response($responsedata, $anonymous=false) {
         global $DB;
 
         if (!$responsedata instanceof \mod_questionnaire\responsetype\response\response) {
@@ -120,7 +120,7 @@ class single extends responsetype {
                             continue;
                         }
                         $record = new \stdClass();
-                        $record->response_id = $response->id;
+                        $record->response_id = ($anonymous ?  0 : $response->id);
                         $record->question_id = $this->question->id;
                         $record->choice_id = $answer->choiceid;
                         $record->response = $answer->value;
@@ -128,7 +128,7 @@ class single extends responsetype {
                     }
                     // Record the choice selection.
                     $record = new \stdClass();
-                    $record->response_id = $response->id;
+                    $record->response_id = ($anonymous ?  0 : $response->id);
                     $record->question_id = $this->question->id;
                     $record->choice_id = $answer->choiceid;
                     $resid = $DB->insert_record(static::response_table(), $record);
@@ -151,9 +151,11 @@ class single extends responsetype {
         $rsql = '';
         $params = array($this->question->id);
         if (!empty($rids)) {
-            list($rsql, $rparams) = $DB->get_in_or_equal($rids);
-            $params = array_merge($params, $rparams);
-            $rsql = ' AND response_id ' . $rsql;
+            if (!$anonymous) {
+                list($rsql, $rparams) = $DB->get_in_or_equal($rids);
+                $params = array_merge($params, $rparams);
+                $rsql = ' AND response_id ' . $rsql;
+            }
         }
 
         // Added qc.id to preserve original choices ordering.
@@ -189,9 +191,12 @@ class single extends responsetype {
     /**
      * Provide the feedback scores for all requested response id's. This should be provided only by questions that provide feedback.
      * @param array $rids
+     * @param bool $anonymous
      * @return array | boolean
+     * @throws \coding_exception
+     * @throws \dml_exception
      */
-    public function get_feedback_scores(array $rids) {
+    public function get_feedback_scores(array $rids, bool $anonymous=false) {
         global $DB;
 
         $rsql = '';
@@ -199,7 +204,7 @@ class single extends responsetype {
         if (!empty($rids)) {
             list($rsql, $rparams) = $DB->get_in_or_equal($rids);
             $params = array_merge($params, $rparams);
-            $rsql = ' AND response_id ' . $rsql;
+            $rsql = $anonymous ? '' : ' AND response_id ' . $rsql;
         }
         $params[] = 'y';
 
@@ -243,7 +248,7 @@ class single extends responsetype {
         }
         $numresps = count($rids);
 
-        $responsecountsql = 'SELECT COUNT(DISTINCT r.response_id) ' .
+        $responsecountsql = 'SELECT COUNT(DISTINCT r.id) ' .
             'FROM {' . $this->response_table() . '} r ' .
             'WHERE r.question_id = ? ';
         $numrespondents = $DB->count_records_sql($responsecountsql, [$this->question->id]);

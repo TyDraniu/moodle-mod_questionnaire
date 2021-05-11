@@ -81,12 +81,12 @@ class boolean extends responsetype {
     }
 
     /**
-     * @param \mod_questionnaire\responsetype\response\response|\stdClass $responsedata
+     * @param  \mod_questionnaire\responsetype\response\response|stdClass $responsedata
      * @return bool|int
-     * @throws \coding_exception
-     * @throws \dml_exception
+     * @throws coding_exception
+     * @throws dml_exception
      */
-    public function insert_response($responsedata) {
+    public function insert_response($responsedata, $anonymous=false) {
         global $DB;
 
         if (!$responsedata instanceof \mod_questionnaire\responsetype\response\response) {
@@ -97,7 +97,7 @@ class boolean extends responsetype {
 
         if (!empty($response) && isset($response->answers[$this->question->id][0])) {
             $record = new \stdClass();
-            $record->response_id = $response->id;
+            $record->response_id = ($anonymous ?  0 : $response->id);
             $record->question_id = $this->question->id;
             $record->choice_id = $response->answers[$this->question->id][0]->choiceid;
             return $DB->insert_record(static::response_table(), $record);
@@ -149,9 +149,9 @@ class boolean extends responsetype {
     /**
      * Provide the feedback scores for all requested response id's. This should be provided only by questions that provide feedback.
      * @param array $rids
-     * @return array | boolean
+     * @return array|boolean
      */
-    public function get_feedback_scores(array $rids) {
+    public function get_feedback_scores(array $rids, bool $anonymous) {
         global $DB;
 
         $rsql = '';
@@ -159,7 +159,7 @@ class boolean extends responsetype {
         if (!empty($rids)) {
             list($rsql, $rparams) = $DB->get_in_or_equal($rids);
             $params = array_merge($params, $rparams);
-            $rsql = ' AND response_id ' . $rsql;
+            $rsql = $anonymous ? '' : ' AND response_id ' . $rsql;
         }
         $params[] = 'y';
 

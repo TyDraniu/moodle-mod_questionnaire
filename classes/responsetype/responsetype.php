@@ -93,9 +93,10 @@ abstract class responsetype {
      * Insert a provided response to the question.
      *
      * @param object $responsedata All of the responsedata as an object.
+     * @param bool $anonymous
      * @return int|bool - on error the subtype should call set_error and return false.
      */
-    abstract public function insert_response($responsedata);
+    abstract public function insert_response($responsedata, $anonymous=false);
 
     /**
      * Provide the result information for the specified result records.
@@ -239,9 +240,10 @@ abstract class responsetype {
     /**
      * Provide the feedback scores for all requested response id's. This should be provided only by questions that provide feedback.
      * @param array $rids
+     * @param bool $anonymous
      * @return array | boolean
      */
-    public function get_feedback_scores(array $rids) {
+    public function get_feedback_scores(array $rids, bool $anonymous) {
         return false;
     }
 
