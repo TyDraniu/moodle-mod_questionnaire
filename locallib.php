@@ -567,6 +567,46 @@ function questionnaire_get_incomplete_users($cm, $sid,
 }
 
 /**
+ * Get a number of users who can complete this questionnaire.
+ * @param $cm
+ * @param int|bool $group
+ * @param int|bool $startpage
+ * @param int|bool $pagecount
+ * @return int
+ * @throws coding_exception
+ */
+function questionnaire_get_number_all_users($cm,
+                                            bool $group = false,
+                                            bool $startpage = false,
+                                            bool $pagecount = false): int
+{
+
+    $context = context_module::instance($cm->id);
+
+    // First
+    $cap = 'mod/questionnaire:submit';
+    $fields = 'u.id, u.username';
+    if (!$allusers = get_users_by_capability($context,
+        $cap,
+        $fields,
+        '',
+        '',
+        '',
+        $group,
+        '',
+        true)) {
+        return 0;
+    }
+    $allusers = array_keys($allusers);
+
+    // For paging I use array_slice().
+    if (($startpage !== false) && ($pagecount !== false)) {
+        $allusers = array_slice($allusers, $startpage, $pagecount);
+    }
+    return count($allusers);
+}
+
+/**
  * Called by HTML editor in showrespondents and Essay question. Based on question/essay/renderer.
  * Pending general solution to using the HTML editor outside of moodleforms in Moodle pages.
  */

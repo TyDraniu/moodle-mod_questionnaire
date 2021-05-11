@@ -386,6 +386,10 @@ switch ($action) {
         if (!empty($resps)) {
             foreach ($resps as $response) {
                 questionnaire_delete_response($response, $questionnaire);
+
+            }
+            foreach ($questionnaire->questions as $q) {
+                questionnaire_delete_responses($q->id);
             }
             if (!$questionnaire->count_submissions()) {
                 $redirection = $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$cm->id;
@@ -627,9 +631,8 @@ switch ($action) {
             } else {
                 $groupname = '<strong>' . get_string('allparticipants') . '</strong>';
             }
-            $respinfo = get_string('viewallresponses', 'questionnaire') . '. ' . $groupname . '. ';
-            $strsort = get_string('order_' . $sort, 'questionnaire');
-            $respinfo .= $strsort;
+            $respinfo = get_string('viewresponses', 'questionnaire', $groupname);
+
             $questionnaire->page->add_to_page('respondentinfo', $respinfo);
             $questionnaire->survey_results('', false, true, $currentgroupid, $sort);
             $html = $questionnaire->renderer->render($questionnaire->page);
@@ -638,7 +641,7 @@ switch ($action) {
             // not an array.
             $errorreporting = error_reporting(0);
             $pdf->writeHTML($html);
-            @$pdf->Output('dump.pdf', 'D');
+            @$pdf->Output(($questionnaire->name ?? 'dump' ) . '.pdf', 'D');
             error_reporting($errorreporting);
 
         } else { // Default to HTML.
@@ -678,7 +681,23 @@ switch ($action) {
             echo $questionnaire->renderer->footer($course);
         }
         break;
+    case 'part':
+        $resps = array();
+        echo $questionnaire->renderer->header();
+        $SESSION->questionnaire->current_tab = 'part';
+        include('tabs.php');
+        $nanswers = $questionnaire->count_submissions();
+        $nusers = questionnaire_get_number_all_users($cm);
+        $respinfo = get_string('totalresponses', 'questionnaire') . ': ' . $nanswers;
+        $respinfo .= '<br>';
+        $respinfo .= get_string('allparticipants') . ': ' . $nusers;
+        $respinfo .= '<br>';
+        $respinfo .= get_string('participation', 'questionnaire') . ': ' . ($nusers != 0 ? 100*$nanswers/$nusers : '0') . '%';
 
+        $questionnaire->page->add_to_page('respondentinfo', $respinfo);
+        echo $questionnaire->renderer->render($questionnaire->page);
+        echo $questionnaire->renderer->footer($course);
+        break;
     case 'vresp': // View by response.
     default:
         if (empty($questionnaire->survey)) {
@@ -771,7 +790,7 @@ switch ($action) {
             // not an array.
             $errorreporting = error_reporting(0);
             $pdf->writeHTML($html);
-            @$pdf->Output('dump.pdf', 'D');
+            @$pdf->Output(($questionnaire->name ?? 'dump' ) . '.pdf', 'D');
             error_reporting($errorreporting);
 
         } else { // Default to HTML.

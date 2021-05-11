@@ -122,7 +122,7 @@ if ($questionnaire->can_view_all_responses_anytime($grouplogic, $resplogic)) {
     $row[] = new tabobject('allreport', $CFG->wwwroot.htmlspecialchars('/mod/questionnaire/report.php?'.
                            $argstr.'&action=vall'), get_string('viewallresponses', 'questionnaire'));
     if (in_array($currenttab, array('vall', 'vresp', 'valldefault', 'vallasort', 'vallarsort', 'deleteall', 'downloadcsv',
-                                     'vrespsummary', 'individualresp', 'printresp', 'deleteresp'))) {
+                                     'vrespsummary', 'individualresp', 'printresp', 'deleteresp', 'part'))) {
         $inactive[] = 'allreport';
         $activated[] = 'allreport';
         if ($currenttab == 'vrespsummary' || $currenttab == 'valldefault') {
@@ -130,6 +130,9 @@ if ($questionnaire->can_view_all_responses_anytime($grouplogic, $resplogic)) {
         }
         $row2 = array();
         $argstr2 = $argstr.'&action=vall&group='.$currentgroupid;
+        $row2[] = new tabobject('part', new moodle_url('/mod/questionnaire/report.php',
+            ['instance' => $questionnaire->id, 'action'=> 'part', 'group' => $currentgroupid]),
+            get_string('participation', 'questionnaire'));
         $row2[] = new tabobject('vall', $CFG->wwwroot.htmlspecialchars('/mod/questionnaire/report.php?'.$argstr2),
                                 get_string('summary', 'questionnaire'));
         if ($questionnaire->capabilities->viewsingleresponse) {
@@ -192,6 +195,10 @@ if ($questionnaire->can_view_all_responses_anytime($grouplogic, $resplogic)) {
         $activated[] = 'vall';
         $row2 = array();
         $argstr2 = $argstr.'&action=vall&group='.$currentgroupid;
+        $row2[] = new tabobject('part', new moodle_url('/mod/questionnaire/report.php',
+                ['instance' => $questionnaire->id, 'action'=> 'part', 'group' => $currentgroupid]),
+            get_string('participation', 'questionnaire'));
+
         $row2[] = new tabobject('valldefault', $CFG->wwwroot.htmlspecialchars('/mod/questionnaire/report.php?'.$argstr2),
                                 get_string('summary', 'questionnaire'));
         $inactive[] = $currenttab;
