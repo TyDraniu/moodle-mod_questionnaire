@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+global $CFG, $USER, $DB, $PAGE, $OUTPUT;
+
 require_once("../../config.php");
 require_once($CFG->dirroot.'/mod/questionnaire/questionnaire.class.php');
 
@@ -23,7 +25,7 @@ $sid = optional_param('sid', null, PARAM_INT);              // Survey id.
 $rid = optional_param('rid', false, PARAM_INT);
 $type = optional_param('type', '', PARAM_ALPHA);
 $byresponse = optional_param('byresponse', false, PARAM_INT);
-$individualresponse = optional_param('individualresponse', false, PARAM_INT);
+$individualresponse = optional_param('individualresponse', false, PARAM_BOOL);
 $currentgroupid = optional_param('group', 0, PARAM_INT); // Groupid.
 $user = optional_param('user', '', PARAM_INT);
 $outputtarget = optional_param('target', 'html', PARAM_ALPHA); // Default 'html'. Could be 'pdf'.
@@ -204,7 +206,7 @@ switch ($action) {
 
         if (empty($questionnaire->survey)) {
             $id = $questionnaire->survey;
-            notify ("questionnaire->survey = /$id/");
+            $OUTPUT->notification("questionnaire->survey = /$id/");
             print_error('surveynotexists', 'questionnaire');
         } else if ($questionnaire->survey->courseid != $course->id) {
             print_error('surveyowner', 'questionnaire');
@@ -683,18 +685,21 @@ switch ($action) {
         break;
     case 'part':
         $resps = array();
+        $PAGE->set_title(get_string('questionnairereport', 'questionnaire'));
+        $PAGE->set_heading(format_string($course->fullname));
         echo $questionnaire->renderer->header();
         $SESSION->questionnaire->current_tab = 'part';
         include('tabs.php');
+
         $nanswers = $questionnaire->count_submissions();
         $nusers = questionnaire_get_number_all_users($cm);
-        $respinfo = get_string('totalresponses', 'questionnaire') . ': ' . $nanswers;
-        $respinfo .= '<br>';
-        $respinfo .= get_string('allparticipants') . ': ' . $nusers;
-        $respinfo .= '<br>';
-        $respinfo .= get_string('participation', 'questionnaire') . ': ' . ($nusers != 0 ? 100*$nanswers/$nusers : '0') . '%';
 
-        $questionnaire->page->add_to_page('respondentinfo', $respinfo);
+        $percent =  $nusers != 0 ? round((float)$nanswers / (float)$nusers * 100.0) : 0;
+
+        $respinfo = ['percent' => $percent, 'nanswers' => $nanswers, 'nusers' => $nusers];
+        $questionnaire->page->add_to_page('respondentinfo',
+            $questionnaire->renderer->render_from_template('mod_questionnaire/attendance', $respinfo));
+
         echo $questionnaire->renderer->render($questionnaire->page);
         echo $questionnaire->renderer->footer($course);
         break;

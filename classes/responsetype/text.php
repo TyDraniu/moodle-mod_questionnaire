@@ -98,6 +98,7 @@ class text extends responsetype {
     public function get_results($rids=false, $anonymous=false) {
         global $DB;
 
+        $params = array();
         if ($anonymous) {
             $sql = 'SELECT t.id, t.response ' .
                     'FROM {'.static::response_table().'} t ' .
@@ -141,8 +142,8 @@ class text extends responsetype {
      * @param bool $rids
      * @param string $sort
      * @param bool $anonymous
-     * @return string
-     * @throws \coding_exception
+     * @return \stdClass
+     * @throws \coding_exception|\dml_exception
      */
     public function display_results($rids=false, $sort='', $anonymous=false) {
         if (is_array($rids)) {

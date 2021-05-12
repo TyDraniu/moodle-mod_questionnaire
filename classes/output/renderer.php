@@ -132,8 +132,8 @@ class renderer extends \plugin_renderer_base {
      * Render the respondent information line.
      * @param string $text The respondent information.
      */
-    public function respondent_info($text) {
-        return \html_writer::tag('span', $text, ['class' => 'respondentinfo']);
+    public function respondent_info(string $text): string {
+        return \html_writer::span($text, 'respondentinfo');
     }
 
     /**

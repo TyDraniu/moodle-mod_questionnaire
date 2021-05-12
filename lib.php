@@ -531,7 +531,7 @@ function questionnaire_extend_settings_navigation(settings_navigation $settings,
         navigation_node $questionnairenode) {
 
     global $PAGE, $DB, $USER, $CFG;
-    $individualresponse = optional_param('individualresponse', false, PARAM_INT);
+    $individualresponse = optional_param('individualresponse', false, PARAM_BOOL);
     $rid = optional_param('rid', false, PARAM_INT); // Response id.
     $currentgroupid = optional_param('group', 0, PARAM_INT); // Group id.
 
